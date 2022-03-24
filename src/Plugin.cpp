@@ -7,7 +7,7 @@ extern "C" __declspec(dllexport) bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadIn
     SKSE::Init(skse);
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* event){
         if (event->type == SKSE::MessagingInterface::kDataLoaded) {
-            SkySpec::Server::SpecServer::GetSingleton().Run();
+//            SkySpec::Server::SpecServer::GetSingleton().Run();
         }
     });
     return true;

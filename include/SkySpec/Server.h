@@ -1,5 +1,10 @@
 #pragma once
 
+#pragma warning(push)
+#include <RE/Skyrim.h>
+#include <REL/Relocation.h>
+#include <SKSE/SKSE.h>
+
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -30,23 +35,11 @@ namespace SkySpec::Server {
             return testSuiteRegistrations;
         }
         void RegisterTestSuiteRunnerFunction(const std::string& testSuiteName, std::function<void()> testSuiteRunnerFn) {
+            RE::ConsoleLog::GetSingleton()->Print(std::format("Loaded Test Suite '{}'", testSuiteName).c_str());
             _testSuiteRunnerFunctions.insert_or_assign(testSuiteName, testSuiteRunnerFn);
         }
         bool IsTestSuiteRegistered(const std::string& testSuiteName) { return _testSuiteRunnerFunctions.contains(testSuiteName); }
         std::function<void()> GetTestSuiteRunnerFunction(const std::string& testSuiteName) { return _testSuiteRunnerFunctions[testSuiteName]; }
-    };
-
-    // Run the test suites
-    // TODO - move logic for running the tests from the server into this! for nice encapsulation :)
-    class TestSuiteRunner {
-        TestSuiteRunner() = default;
-    public:
-        TestSuiteRunner(const TestSuiteRunner&) = delete;
-        TestSuiteRunner &operator=(const TestSuiteRunner&) = delete;
-        static TestSuiteRunner& GetSingleton() {
-            static TestSuiteRunner testSuiteRunner;
-            return testSuiteRunner;
-        }
     };
 
     // Server which orchestrates running test suites (by name)
@@ -78,6 +71,7 @@ namespace SkySpec::Server {
         // Called by connection to request a test suite be run by name
         // Creates a 'testRun'
         void RunTestSuite(const std::string& testSuiteName, connection_hdl connection) {
+            RE::ConsoleLog::GetSingleton()->Print(std::format("Request to run test suite {}", testSuiteName).c_str());
             int testSuiteRunID = _testRun_NextId++;
             // TODO - lock :)
             _testRun_TestSuiteNames.insert_or_assign(testSuiteRunID, testSuiteName);
@@ -102,6 +96,7 @@ namespace SkySpec::Server {
                 auto& testRegistrations = TestSuiteRegistrations::GetSingleton();
                 if (testRegistrations.IsTestSuiteRegistered(testSuiteName)) {
                     auto fn = testRegistrations.GetTestSuiteRunnerFunction(testSuiteName);
+                    RE::ConsoleLog::GetSingleton()->Print(std::format("Running Test Suite '{}'", testSuiteName).c_str());
                     fn();
                 } else {
                     queue.push(testRunId);
@@ -124,6 +119,7 @@ namespace SkySpec::Server {
                 WatchQueueForTestsToRun();
                 _webSocketServer.init_asio();
                 _webSocketServer.listen(6969);
+                RE::ConsoleLog::GetSingleton()->Print("SkySpec Running on 6969");
                 _webSocketServer.start_accept();
                 _webSocketServer.run();
             } catch (websocketpp::exception const & e) {
@@ -135,7 +131,7 @@ namespace SkySpec::Server {
     };
 
     __declspec(dllexport) int RegisterTestSuite(const std::string& testSuiteName, std::function<void()> testSuiteRunnerFn);
-    __declspec(dllexport) void NotifyText(int testRunId, const std::string& testSuiteName, const std::string text);
-    __declspec(dllexport) void NotifyTestPassed(int testRunId, const std::string& testSuiteName, const std::string testName);
-    __declspec(dllexport) void NotifyTestFailed(int testRunId, const std::string& testSuiteName, const std::string testName);
+    __declspec(dllexport) void NotifyText(int testRunId, const std::string& testSuiteName, const std::string& text);
+    __declspec(dllexport) void NotifyTestPassed(int testRunId, const std::string& testSuiteName, const std::string& testName);
+    __declspec(dllexport) void NotifyTestFailed(int testRunId, const std::string& testSuiteName, const std::string& testName);
 }
