@@ -91,21 +91,28 @@ namespace SkySpec::Server {
             while (true) {
                 auto& server = GetSingleton();
                 auto& queue = server.GetTestRunQueue();
-                auto testRunId = queue.front(); queue.pop(); // TODO - lock!
-                auto testSuiteName = server.GetTestSuiteNameForRunId(testRunId);
-                auto& testRegistrations = TestSuiteRegistrations::GetSingleton();
-                if (testRegistrations.IsTestSuiteRegistered(testSuiteName)) {
-                    auto fn = testRegistrations.GetTestSuiteRunnerFunction(testSuiteName);
-                    RE::ConsoleLog::GetSingleton()->Print(std::format("Running Test Suite '{}'", testSuiteName).c_str());
-                    fn();
-                } else {
-                    queue.push(testRunId);
+                if (!queue.empty()) {
+                    auto testRunId = queue.front(); queue.pop(); // TODO - lock!
+                    auto testSuiteName = server.GetTestSuiteNameForRunId(testRunId);
+                    auto& testRegistrations = TestSuiteRegistrations::GetSingleton();
+                    if (testRegistrations.IsTestSuiteRegistered(testSuiteName)) {
+                        auto fn = testRegistrations.GetTestSuiteRunnerFunction(testSuiteName);
+                        RE::ConsoleLog::GetSingleton()->Print(std::format("Running Test Suite '{}'", testSuiteName).c_str());
+                        fn();
+                    } else {
+                        queue.push(testRunId);
+                    }
                 }
                 std::this_thread::sleep_for(1s);
             }
         }
 
         void Run() {
+            std::thread serverThread([](){ SpecServer::GetSingleton().RunServer(); });
+            serverThread.detach();
+        }
+
+        void RunServer() {
             _webSocketServer.set_message_handler([](connection_hdl connection, WebSocketMessagePtr message){
                 auto messageText = message->get_payload();
                 if (messageText == "Quit") {
@@ -130,7 +137,7 @@ namespace SkySpec::Server {
         }
     };
 
-    __declspec(dllexport) int RegisterTestSuite(const std::string& testSuiteName, std::function<void()> testSuiteRunnerFn);
+    __declspec(dllexport) void RegisterTestSuite(const std::string& testSuiteName, std::function<void()> testSuiteRunnerFn);
     __declspec(dllexport) void NotifyText(int testRunId, const std::string& testSuiteName, const std::string& text);
     __declspec(dllexport) void NotifyTestPassed(int testRunId, const std::string& testSuiteName, const std::string& testName);
     __declspec(dllexport) void NotifyTestFailed(int testRunId, const std::string& testSuiteName, const std::string& testName);

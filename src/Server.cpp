@@ -1,6 +1,6 @@
 #include "SkySpec/Server.h"
 
-int SkySpec::Server::RegisterTestSuite(const std::string& testSuiteName, std::function<void()> testSuiteRunnerFn) {
+void SkySpec::Server::RegisterTestSuite(const std::string& testSuiteName, std::function<void()> testSuiteRunnerFn) {
     SkySpec::Server::TestSuiteRegistrations::GetSingleton().RegisterTestSuiteRunnerFunction(testSuiteName, testSuiteRunnerFn);
 }
 
