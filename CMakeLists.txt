@@ -15,3 +15,10 @@ target_link_libraries(SkySpecServer PRIVATE CommonLibSSE::CommonLibSSE)
 
 find_package(websocketpp CONFIG REQUIRED)
 target_link_libraries(SkySpecServer PRIVATE websocketpp::websocketpp)
+
+# Add an example test suite which links against the server
+
+add_library(SomeTests SHARED exampleTests/test.cpp)
+target_link_libraries(SomeTests PRIVATE SkySpecServer)
+target_include_directories(SomeTests PRIVATE include)
+target_link_libraries(SomeTests PRIVATE CommonLibSSE::CommonLibSSE)
